@@ -138,3 +138,62 @@ where idCliente=3;
 
 delete from productos
 where stockProducto<3;
+
+## sentencias para concultas
+## generales 
+-- select * from nombre_tabla
+-- select idCliente,docCliente from cliente
+## especificas
+-- AS-Alios
+-- where
+-- likes
+-- subconsulta
+-- agrupados
+-- ordenados
+-- multitabla
+-- subconsulta
+-- operacionescalculadas
+
+describe productos;
+alter table productos change stockProducto  stoProT int;
+select nombreProducto,stoProT from productos;
+
+## alias para darle un alias al nombre de un campo y se usa nombredelcampo as aliasdelcampo
+
+select nombreProducto as Nombre_Producto, stoProT as stock from productos;
+
+## where operacion (aritmetica) + - * / y logistica and or not 
+
+select nombreProducto,stoProT from productos where idProducto=1 ;
+
+select nombreProducto,stoProT from productos where stoProT>=15 and idProducto=1 ;
+
+select nombreProducto as Nombre_Producto, stoProT as stock from productos
+where stoProT>=10 and nombreProducto='Laptop Pro';
+-- select * from productos;
+## select campos from nombre_tabla order by campo_a_ordenar formaOrden(ASC DESC)
+
+select nombreProducto as Nombre_Producto, stoProT AS stock
+from productos order by nombreProducto ASC;
+
+select nombreProducto as Nombre_Producto, stoProT as stock from productos
+where stoProT>=25 or nombreProducto='Laptop Pro';
+
+## between para selecionar un rango de campos  select * from nombre_tabla between valor1 and valor2
+
+select nombreProducto as Nombre_Producto, precioProducto as precio from productos
+where precioProducto between 50000 and 100000 and stoProT>3 order by precioProducto;
+
+## like buscar caracteres que inicion, que terminen o que contengan
+## que inicien
+select * from productos where nombreProducto like 'm%';
+## que contengan
+select * from productos where nombreProducto like '%o%';
+## que termine
+select * from productos where nombreProducto like '%os' order by precioProducto asc limit 10;
+
+select * from productos where nombreProducto not like 'm%';
+
+
+
+
