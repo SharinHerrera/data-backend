@@ -54,7 +54,7 @@ creado_en datetime default now()
 -- select consulta general de las tablas 
 -- select * from cliente;
 -- select * from productos;
--- select * from pedido;
+select * from pedido;
 
 -- Inserciones insert into nombre_tabla (campos1,campo2,campo3,...) values (valor1,valor2,valor3,...)
 -- si el campo es varchar va entre comillas
@@ -194,6 +194,32 @@ select * from productos where nombreProducto like '%os' order by precioProducto 
 
 select * from productos where nombreProducto not like 'm%';
 
+##  importar un csv con datos sin necesidad de un insert 
+
+load data infile 'C:/xampp/mysql/data/datosClientes.csv'
+into table cliente
+fields terminated by ','
+lines terminated by '\n'
+ignore 1 rows
+(nombreCliente,emailCliente,ciudad);
+
+select idCliente from cliente order by idCliente ;
+select * from pedido;
+select 51 in (select idCliente from cliente);
+
+load data infile 'C:/xampp/mysql/data/datosProductos.csv'
+into table productos
+fields terminated by ','
+lines terminated by '\n'
+ignore 1 rows
+(nombreProducto,precioProducto,stoProT,categoriaProducto);
+
+load data infile 'C:/xampp/mysql/data/pedidos.csv'
+into table pedido
+fields terminated by ','
+lines terminated by '\r\n'
+ignore 1 rows
+(cantidadProducto,fechaPedido,idClienteFK,idProductoFK);
 
 
 
