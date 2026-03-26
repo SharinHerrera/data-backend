@@ -52,6 +52,7 @@ creado_en datetime default now()
 );
 
 -- select consulta general de las tablas 
+-- select * from  cliente_backup;
 -- select * from cliente;
 -- select * from productos;
 -- select * from pedido;
@@ -220,6 +221,54 @@ fields terminated by ','
 lines terminated by '\r\n'
 ignore 1 rows
 (cantidadProducto,fechaPedido,idClienteFK,idProductoFK);
+
+## cargar archivos
+
+-- set foreign_key_checks=0; desactiva las llavez foraneas para que no de problema al cargar los datos
+-- set foreign_key_checks=1; despues de cargar los datos se vuelve a activar 
+
+/* Agrupar group by select camposConsultar from nombreTabla group by campoAgrupar */
+
+select * from productos group by categoriaProducto;
+
+-- count()
+-- AVG ()
+-- Sum ()
+-- max ()
+-- min ()
+
+select categoriaProducto, 
+count(*)as cantidad,
+avg(precioProducto) as promedioMedio
+from productos 
+group by categoriaProducto
+having avg(precioProducto)>5000
+order by promedioMedio desc;
+
+select format (precioProducto,2,'es_CO') as precio 
+from productos;
+
+## funciones calculadas
+select 
+count(*) as Total,
+avg (precioProducto) as PromedioPrecio,
+max(precioProducto) as PrecioMaximo,
+min(precioProducto) as PrecioMinimo,
+sum(stoProT) as StockTotal
+from productos;
+
+-- describe productos;
+
+select upper(nombreCliente) as NombreMayuscula,
+concat('nombre Cliente: ',nombreCliente,' email Cliente: ',emailCliente) as Concatenar,
+length(nombreCliente) as TamanioNombre
+from cliente;
+
+## consultar los clientes que realizaron 2 pedidos de un producto cuyo precio es mayor a 100.000
+
+## subconsulta  
+
+
 
 
 
