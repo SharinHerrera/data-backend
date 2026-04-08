@@ -268,7 +268,106 @@ from cliente;
 
 ## subconsulta  
 
+/*Consultas Anidadas: SubQuery select 
+select col1,col2
+from tabla_Princial
+where columna operador
+	(select col1,col2
+from tabla_Secundaria
+where condicion); 
+tipos de subconsultas
+Escalar: devuelve  un único valor (fila o columna Se utiliza en operadores de comparación (<, >...)
+de fila: devuelve una sola fila con varias columnas row()
+de tabla: devuelve una tabla (varios registros(filas) y campos(columnas)) se usa en clausulas from
+Correlacionales: referencia relaciona la consulta exterior con la interior. Se usa con FK
+*/
+
+/* retos
+1.crear tabla empleados (id,nombre,deptoId, salario)
+producto (id,nombre,precio,categoria)
+departamento(id,nombre)
+ 2. Vamos a registrar 5 empleados 3 departamentos y 5 productos*/
+
+create table departamentos(
+idDepto int primary key,
+nombreDepto varchar(50)
+);
+
+create table empleados(
+idEmpleado int primary key,
+nombreEmpleado varchar(50),
+depto_id int,
+salarioEmpleado decimal(10,2),
+foreign key (depto_id) references departamentos(idDepto)
+);
+
+create table producto(
+idProducto int primary key,
+nombreProducto varchar(60),
+precioProducto decimal(10,2),
+categoriaProducto varchar(40)
+);
+ 
+insert into departamentos (idDepto, nombreDepto) values
+(1, 'Recursos Humanos'),
+(2 , 'contabilidad'),
+(3 ,'Finanzas');
+ 
+insert into empleados (idEmpleado, nombreEmpleado, depto_id, salarioEmpleado) values
+(1,'David lizmar', 2, 2500000.00),
+(2,'Andrea Herrera', 1, 1800000.00),
+(3,'Sonia Suarez', 3, 3000000.00),
+(4,'María Ruiz', 3, 3000000.00),
+(5, 'Santiago Martínez', 2, 2500000.00);
+ 
+insert into producto (idProducto, nombreProducto, precioProducto, categoriaProducto) values
+(1,'vestido', 200000.00, 'Ropa'),
+(2,'tacones', 80000.00, 'Calzado'),
+(3,'cadena plata', 150000.00, 'Accesorios'),
+(4,'falda corta', 50000.00, 'Ropa'),
+(5,'polvo compacto', 35000.00, 'Maquillaje');
+
+select*from empleados;
 
 
+/*Subconsultas*/
+###-----Where----
+select nombreEmpleado,salarioEmpleado 
+from empleados
+where salarioEmpleado>
+	(select AVG(salarioEmpleado)
+    from empleados);
+    
+ ###-----Where+in----
+select nombreEmpleado,salarioEmpleado 
+from empleados
+where depto_id in 
+	(select idDepto
+    from departamentos
+    where nombreDepto in ('Recursos Humanos','Finanzas'));
+   
+   
+ ###-----tabla derivada----
+select depto_id,prom_salario
+from 
+	(select depto_id,AVG(salarioEmpleado)as prom_salario
+	from empleados
+    group by depto_id) as promedios
+where prom_salario > 2000000.00;
+
+
+## reto 
+select nombreEmpleado,salarioEmpleado,
+(select avg(salarioEmpleado) from empleados) as promGeneral,
+salarioEmpleado - (select avg(salarioEmpleado) from empleados ) as diferencia
+from empleados;
+
+select categoriaProducto,
+max(precioProducto) AS precioMaximo from producto
+where precioProducto > (
+select avg(precioProducto) from producto
+)
+group by categoriaProducto
+order by precioMaximo desc;
 
 
