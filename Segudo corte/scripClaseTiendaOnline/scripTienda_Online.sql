@@ -197,27 +197,27 @@ select * from productos where nombreProducto not like 'm%';
 
 ##  importar un csv con datos sin necesidad de un insert 
 
-load data infile 'C:/xampp/mysql/data/datosClientes.csv'
+load data infile 'C:/xamp/mysql/data/cliente.csv'
 into table cliente
-fields terminated by ','
+fields terminated by ';'
 lines terminated by '\n'
 ignore 1 rows
 (nombreCliente,emailCliente,ciudad);
-
+-- select * from cliente;
 -- select idCliente from cliente order by idCliente ;
 -- select * from pedido;
 -- select 51 in (select idCliente from cliente);
 
-load data infile 'C:/xampp/mysql/data/datosProductos.csv'
+load data infile 'C:/xamp/mysql/data/productos.csv'
 into table productos
-fields terminated by ','
+fields terminated by ';'
 lines terminated by '\n'
 ignore 1 rows
 (nombreProducto,precioProducto,stoProT,categoriaProducto);
 
-load data infile 'C:/xampp/mysql/data/pedidos.csv'
+load data infile 'C:/xamp/mysql/data/pedido.csv'
 into table pedido
-fields terminated by ','
+fields terminated by ';'
 lines terminated by '\r\n'
 ignore 1 rows
 (cantidadProducto,fechaPedido,idClienteFK,idProductoFK);
@@ -362,12 +362,44 @@ select nombreEmpleado,salarioEmpleado,
 salarioEmpleado - (select avg(salarioEmpleado) from empleados ) as diferencia
 from empleados;
 
-select categoriaProducto,
+select categoriaProducto, nombreProducto,
 max(precioProducto) AS precioMaximo from producto
 where precioProducto > (
-select avg(precioProducto) from producto
+select avg(precioProducto) from producto as promedioPrecio
 )
 group by categoriaProducto
 order by precioMaximo desc;
+
+select * from producto;
+select avg(precioProducto) from producto as promedioPrecio;
+
+
+create table pedidos(
+idPed int primary key auto_increment,
+cantidadProducto int not null,
+fechaPedido date,
+idEmpleadoFK int,
+foreign key (idEmpleadoFK) references empleados (idEmpleado)
+);
+
+create table detpedido(
+idDetpedido int primary key auto_increment,
+cantidad int not null,
+precioUnitario decimal(10,2) not null,
+subTotal decimal(10,2) not null,
+idPedFK int,
+idProductoFK int,
+foreign key (idPedFK) references pedidos (idPed),
+foreign key (idProductoFK) references producto (idProducto));
+
+select p.idPedido,
+c.nombre as empleados,
+c.ciudad,
+p.fechaPedido,
+p.estado,
+p.total
+from pedidos p
+inner join empleados c on p.idEmpleado=c.idCliente
+order by p.fechaPedido desc;
 
 
