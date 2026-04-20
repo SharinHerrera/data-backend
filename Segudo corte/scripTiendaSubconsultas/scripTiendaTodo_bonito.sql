@@ -55,7 +55,6 @@ precioProducto decimal(10,2),
 stock int default 0 ,
 categoriaProducto varchar(40)
 );
- 
 insert into departamentos (idDepto, nombreDepto) values
 (1,'ventas'),
 (2,'contabilidad'),
@@ -132,6 +131,7 @@ create table pedido(
 idPed int primary key auto_increment,
 fechaPedido datetime default now(),
 total decimal(10,2),
+estado varchar(20) default 'pendiente',
 idClienteFK int,
 idEmpleadoFK int,
 foreign key (idClienteFK) references cliente(idCliente),
@@ -147,10 +147,10 @@ idProductoFK int,
 foreign key (idPedFK) references pedido (idPed),
 foreign key (idProductoFK) references productos (idProducto));
 
-insert into pedido (fechaPedido,total,idClienteFK,idEmpleadoFK) values
-(now(),350000,1,11),
-(now(),150000,2,12),
-(now(),250000,3,13);
+insert into pedido (fechaPedido,total,estado,idClienteFK,idEmpleadoFK) values
+(now(),350000,'pendiente',1,11),
+(now(),150000,'enviado',2,12),
+(now(),250000,'entregado',3,13);
 
 insert into detpedido (cantidad,precioUnitario,idPedFK,idProductoFK) values
 (1,200000,1,1),
@@ -184,6 +184,7 @@ inner join productos pr on d.idProductoFK = pr.idProducto
 order by c.nombrecliente, p.idPed desc;
 
 
+
 ## == procedimientos almacenados - funciones - vistas
 /* ===== procedimientos almacenados stored procedures====
 son bloques de codigo de SQL que tienen un nombre que se almacenan en el servidor y se ejecutan con invocacion 
@@ -214,8 +215,13 @@ CALL nombreProcedimiento(valor_entrada,@variable_salida,@variable_entrada_salida
 */
 ## ejemplo 1 registro de un pedido completo
 
+SHOW PROCEDURE STATUS
+WHERE Db = 'todo_bonito';
+
+drop procedure if exists crearPedido1;
+
 DELIMITER //
-create procedure crearPedido(
+create procedure crearPedido1(
 	in p_idCliente int,
     in p_idProducto int,
     in p_cantidad int,
@@ -234,9 +240,9 @@ begin
             set p_idPed=-1;
 		end;
         -- validar disponibilidad de stock
-        select stock, precio into v_stock, v_precioProducto
+        select stock, precioProducto into v_stock, v_precioProducto
         from productos where idProducto=p_idProducto;
-        if v_stock>p_cantidad then
+        if v_stock<p_cantidad then
         set p_mensaje=concat('stock insuficiente.Disponible:',v_stock);
         set p_idPed=0;
         else
@@ -246,8 +252,8 @@ begin
         insert into pedido(idClienteFK,total) values (p_idCliente,v_total);
         set p_idPed=last_insert_id();
         -- insertar el detalle
-        insert into detalle_pedido(idPed,idProducto,cantidad,precioUnitario)
-		values(p_idPed,p_idProducto,p_cantidad,v_precio);
+        insert into detpedido(cantidad,precioUnitario,idPedFK,idProductoFK)
+		values(p_cantidad,v_precioProducto,p_idPed,p_idProducto);
 		-- descontar del stock
         update productos
         set stock = stock-p_cantidad
@@ -256,11 +262,13 @@ begin
         set p_mensaje=concat('pedido #',p_idPed,'creado correctamente');
         end if;
 end//
-delimiter ;/* siempre debe tener ese espacio*/
+delimiter ;
+
 -- invocar o ejecutar el procedimiento
-	call crearPedido (1,3,10,@pedido_id,@mensaje);        
-    
-    select @pedido_id as id_Pedido, @mensaje as mensaje;
+	call crearPedido1 (1,3,2,@pedido_id,@mensaje);        
+    select @pedido_id,@mensaje;
+   
+   select @pedido_id as id_Pedido, @mensaje as mensaje;
     select * from pedido;
     select * from cliente;
         
@@ -328,17 +336,132 @@ begin
 
         commit;
                 set p_mensaje = concat(
-            'EXITOSA: pedido #', p_idPedido,
+            'EXITOSA: pedido #', p_idPed,
             ' cancelado. Stock restaurado para ',
             v_contador, ' productos'
         );
     end if;
 end//
-delimiter ;/* siempre debe tener ese espacio*/
+delimiter ;
+
 -- invocar o ejecutar el procedimiento
 	call cancelarPedido(1,1,@mensaje);
 	select @mensaje;  
-    
-    
-    
-    
+   
+   
+DROP VIEW IF EXISTS vista_pedidos_cancelados;
+create view vista_pedidos_cancelados as
+select
+    p.idPed,
+    c.nombreCliente as cliente,
+    pr.nombreProducto,
+    d.cantidad,
+    d.precioUnitario,
+    (d.cantidad * d.precioUnitario) as subTotal,
+    p.estado,
+    p.fechaPedido
+from pedido p
+inner join cliente c
+    on p.idClienteFK = c.idCliente
+inner join detpedido d
+    on p.idPed = d.idPedFK
+inner join productos pr
+    on d.idProductoFK = pr.idProducto
+where p.estado = 'cancelado'
+order by p.fechaPedido desc;
+
+
+
+ /* Funciones
+Definición: Siempre van a devolver o retornar un valor(es algo que tiene un campo, no mensajes) y se van a poder utilizar dentro de consultas -> select con clausula where. 
+Las funciones no puede actualizar datos (insert, update o delelte)
+Sintaxis: 
+DELIMITER //
+create function nombreFuncion(
+parametro1 tipo,
+parametro2 tipo
+)
+returns tipo_retorno
+deterministic
+now(),rand()
+reads SQL DATA
+tablas
+begin
+	DECLARE variable tipo,
+    -- logica --
+    RETURN variable;
+end //
+DELIMITER ;
+*/
+
+##Ejemplo: calcular descuento por volumen de compra
+drop procedure if exists fn_descuento_volumen;
+DELIMITER //
+create function fn_descuento_volumen(p_cantidad int, 
+p_precioProducto decimal(10,2))
+returns decimal (10,2)
+deterministic
+begin
+declare v_porcentaje decimal(5,2);
+declare v_total decimal(12,2);
+-- definir el porcentaje de descuento segun la cantidad comprada
+set v_porcentaje= case
+	when p_cantidad>=100 then 20.00
+	when p_cantidad>=50 then 15.00
+	when p_cantidad>=20 then 10.00
+	when p_cantidad>=10 then 5.00
+end;
+
+set v_total= p_cantidad * p_precioProducto*(1-(v_porcentaje/100));
+return round(v_total,2);
+END //
+DELIMITER ;
+select nombreProducto,precioProducto,fn_descuento_volumen(25,precioProducto) as TotalConDescuento
+from productos;
+
+delimiter //
+create function fn_clasificar_cliente(p_idcliente int)
+returns varchar(30)
+deterministic
+begin
+    declare v_total decimal(12,2);
+
+    select coalesce(sum(total),0)
+    into v_total
+    from pedido
+    where idlientefk = p_idCliente
+      and estado != 'cancelado';
+
+    return case
+        when v_total >= 1000000 then 'premium'
+        when v_total >= 500000 then 'frecuente'
+        else 'ocasional'
+    end;
+end //
+
+delimiter ;
+
+
+-- Vista de resumenes de clientes
+create or replace view v_resumen_clientes as 
+select 
+c.idCliente,
+c.nombreCliente,
+c.emailCliente,
+c.ciudad,
+count(p.idPed) as total_pedidos,
+coalesce(sum(p.total),0) as monto_total,
+coalesce(avg(p.total),0) as ticket_promedio,
+max(p.fechaPedido) as fecha_ultimo_pedido,
+fn_clasificar_cliente(c.idCliente) as segmento
+from cliente c
+left join pedido p on c.idCliente=p.idClienteFK
+and p.estado !='cancelado'
+group by c.idCliente, c.nombreCliente, c.emailCliente,c.ciudad;
+
+
+SELECT * FROM v_resumen_clientes;
+select * from v_resumen_clientes order by monto_total desc;
+select nombreCliente as cliente, segmento from v_resumen_clientes where ciudad='MTY' order by monto_total desc;
+ 
+ select * from pedido;
